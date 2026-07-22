@@ -1,0 +1,10 @@
+pandas>=2.2,<3.1
+numpy>=1.26,<2.5
+scipy>=1.13,<1.18
+scikit-learn>=1.8,<1.10
+seaborn>=0.13,<0.14
+matplotlib>=3.9,<3.11
+plotly>=6.0,<7.0
+streamlit>=1.40,<2.0
+openpyxl>=3.1,<4.0
+xlrd>=2.0,<3.0
