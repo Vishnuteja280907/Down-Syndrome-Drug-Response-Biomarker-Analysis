@@ -13,7 +13,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
 import streamlit as st
+from sklearn.decomposition import PCA
 from sklearn.impute import KNNImputer
 
 
@@ -791,6 +793,50 @@ that were changed in this experiment:
 So `t-CS-m` = "a Down-syndrome-model mouse, given the real learning test, treated with the drug."
         """
     )
+
+    st.markdown("---")
+    st.subheader("\U0001F4CD All 77 proteins reduced to a 2D map (PCA)")
+    st.markdown(
+        "Each mouse has 77 protein measurements — far too many to plot directly "
+        "(a chart only has 2 or 3 axes, not 77). "
+        "**PCA** (Principal Component Analysis) finds the 2 directions that capture "
+        "the most variation across all 77 proteins, so we can plot every mouse as a "
+        "single point and see whether groups form visually distinct clusters."
+    )
+
+    @st.cache_data
+    def compute_pca(_df, _protein_cols):
+        from sklearn.preprocessing import StandardScaler
+        X_scaled = StandardScaler().fit_transform(_df[_protein_cols])
+        pca = PCA(n_components=2)
+        result = pca.fit_transform(X_scaled)
+        return result, pca.explained_variance_ratio_
+
+    pca_result, explained_var = compute_pca(df, protein_cols)
+    pca_df = pd.DataFrame(pca_result, columns=["Dimension 1", "Dimension 2"])
+    pca_df["Mouse Group"] = df["class"].values
+    pca_df["Genotype"] = df["Genotype"].values
+
+    st.info(
+        "\U0001F4A1 **How to read the chart below:** each dot is one mouse. Hover over "
+        "a dot to see its group. If Control and Trisomic groups form visually separate "
+        "regions (rather than one mixed-together blob), that means Genotype is a real "
+        "driver of overall protein patterns. This is a **general, reduced-dimension view** "
+        "across all 77 proteins at once — it's a different question from \"did treatment "
+        "shift any *specific* protein toward control,\" which is what the statistical "
+        "tests in the Protein Explorer tab answer directly. Together they give both the "
+        "big-picture pattern and the specific evidence."
+    )
+
+    fig_pca = px.scatter(
+        pca_df, x="Dimension 1", y="Dimension 2",
+        color="Mouse Group", symbol="Genotype",
+        title=f"2D protein map (PC1: {explained_var[0]*100:.1f}% variance, PC2: {explained_var[1]*100:.1f}% variance)",
+        template="plotly_dark",
+        hover_data=["Mouse Group"],
+    )
+    fig_pca.update_traces(marker=dict(size=7, opacity=0.7))
+    st.plotly_chart(fig_pca, use_container_width=True)
 
 with tab2:
     render_protein_explorer()
